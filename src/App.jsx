@@ -1,16 +1,25 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Routes, Route, useNavigate, Navigate } from 'react-router-dom'
 import NavBar from './components/NavBar/NavBar'
 import Signup from './pages/Signup/Signup'
 import Login from './pages/Login/Login'
-import Landing from './pages/Landing/Landing'
-import Profiles from './pages/Profiles/Profiles'
+import Home from './pages/Home/Home'
 import ChangePassword from './pages/ChangePassword/ChangePassword'
 import * as authService from './services/authService'
+import * as profileService from "./services/profileService"
 
 const App = () => {
   const [user, setUser] = useState(authService.getUser())
   const navigate = useNavigate()
+  const [tasks, setTasks] = useState([])
+
+  useEffect(() => {
+    const fetchProfileData = async () => {
+      const profileData = await profileService.getProfileData()
+      setTasks([...profileData.tasks])
+    }
+    fetchProfileData()
+  }, [])
 
   const handleLogout = () => {
     authService.logout()
@@ -22,11 +31,43 @@ const App = () => {
     setUser(authService.getUser())
   }
 
+  const handleAddTask = async (newTaskData) => {
+    const updatedProfile = await profileService.addTask(newTaskData)
+    setTasks([...updatedProfile.tasks])
+  }
+
+  const handleDeleteTask = async (taskId) => {
+    const updatedProfile = await profileService.deleteTask(taskId)
+    setTasks(updatedProfile.tasks)
+  }
+
+  const handleEditTask = async (taskData, taskId) => {
+    const updatedProfile = await profileService.editTask(taskData, taskId)
+    setTasks([...updatedProfile.tasks])
+  }
+
+  const handleDeleteAll = async () => {
+    const updatedProfile = await profileService.deleteAllTasks()
+    setTasks([])
+  }
+
   return (
     <>
       <NavBar user={user} handleLogout={handleLogout} />
       <Routes>
-        <Route path="/" element={<Landing user={user} />} />
+        <Route 
+          path="/" 
+          element={
+            <Home 
+              user={user}
+              tasks={tasks}
+              handleAddTask={handleAddTask}
+              handleDeleteTask={handleDeleteTask}
+              handleEditTask={handleEditTask}
+              handleDeleteAll={handleDeleteAll}
+            />
+          } 
+        />
         <Route
           path="/signup"
           element={<Signup handleSignupOrLogin={handleSignupOrLogin} />}
@@ -34,10 +75,6 @@ const App = () => {
         <Route
           path="/login"
           element={<Login handleSignupOrLogin={handleSignupOrLogin} />}
-        />
-        <Route
-          path="/profiles"
-          element={user ? <Profiles /> : <Navigate to="/login" />}
         />
         <Route
           path="/changePassword"
